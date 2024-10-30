@@ -1,12 +1,13 @@
 #!/bin/bash
 source ./.env
 
-if [[ $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4) == "(none)" ]]; then
+$PGV = $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
+if [[ -z "$PGV" ]] || [[ $PGV == "(none)" ]]; then
     echo "Error Postgres did not install"
     exit
 fi
 
-if [ -f "/usr/local/bin/wal-g" ]; then
+if [[ -f "/usr/local/bin/wal-g" ]]; then
     echo "Error wal-g already installed"
     exit
 fi

@@ -1,10 +1,19 @@
 #!/bin/bash
 source ./.env
 
-if ! [[ $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4) == "(none)" ]]; then
+
+$PGV = $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
+# if ! [[  $PGV == "(none)" ]]; then
+#     echo "Error Postgres already installed"
+#     exit
+# fi
+
+
+if ! [[ -z "$PGV" ]] || ! [[ $PGV == "(none)" ]]; then
     echo "Error Postgres already installed"
     exit
 fi
+
 
 # Import the repository signing key:
 apt install curl ca-certificates
