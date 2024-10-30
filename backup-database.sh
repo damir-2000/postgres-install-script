@@ -11,4 +11,4 @@ if ! [ -f "/usr/local/bin/wal-g" ]; then
     exit
 fi
 
-su - postgres -c '/usr/local/bin/wal-g backup-push /var/lib/postgresql/$VERSION/main'
+su - postgres -c "/usr/local/bin/wal-g backup-push /var/lib/postgresql/$VERSION/main"
