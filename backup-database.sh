@@ -1,7 +1,7 @@
 #!/bin/bash
 source ./.env
 
-declare -r PGV = $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
+declare -r PGV=$(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
 if [[ -z "$PGV" ]] || [[ $PGV == "(none)" ]]; then
     echo "Error Postgres did not install"
     exit
