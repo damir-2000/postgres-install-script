@@ -1,7 +1,7 @@
 #!/bin/bash
 source ./.env
 
-if [[ $(apt-cache policy postgresql | grep -e Installed: | cut -d' ' -f4) == "(none)" ]]; then
+if ! [[ $(apt-cache policy postgresql | grep -e Installed: | cut -d' ' -f4) == "(none)" ]]; then
     echo "Error Postgres already installed"
     exit
 fi
