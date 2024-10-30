@@ -10,7 +10,7 @@ curl -L "https://github.com/wal-g/wal-g/releases/download/v3.0.3/wal-g-pg-ubuntu
 
 tar -xzf wal-g.linux-amd64.tar.gz
 
-mv wal-g /usr/local/bin/
+mv wal-g.linux-amd64.tar.gz /usr/local/bin/wal-g
 
 cat >/var/lib/postgresql/.walg.json <<EOF
 {
