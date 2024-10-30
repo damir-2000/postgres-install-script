@@ -41,3 +41,5 @@ echo "archive_mode=on" >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "archive_command='/usr/local/bin/wal-g wal-push \"%p\" >> /var/log/postgresql/archive_command.log 2>&1' " >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "archive_timeout=60" >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "restore_command='/usr/local/bin/wal-g wal-fetch \"%f\" \"%p\" >> /var/log/postgresql/restore_command.log 2>&1' " >>/etc/postgresql/$VERSION/main/postgresql.conf
+
+service postgresql reload
