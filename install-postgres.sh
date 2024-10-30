@@ -2,13 +2,7 @@
 source ./.env
 
 
-$PGV = $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
-# if ! [[  $PGV == "(none)" ]]; then
-#     echo "Error Postgres already installed"
-#     exit
-# fi
-
-
+declare -r PGV = $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4)
 if ! [[ -z "$PGV" ]] || ! [[ $PGV == "(none)" ]]; then
     echo "Error Postgres already installed"
     exit
