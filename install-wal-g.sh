@@ -1,6 +1,11 @@
 #!/bin/bash
 source ./.env
 
+if [[ $(apt-cache policy postgresql-$VERSION | grep -e Installed: | cut -d' ' -f4) == "(none)" ]]; then
+    echo "Error Postgres did not install"
+    exit
+fi
+
 if [ -f "/usr/local/bin/wal-g" ]; then
     echo "Error wal-g already installed"
     exit
@@ -18,7 +23,7 @@ cat >/var/lib/postgresql/.walg.json <<EOF
     "AWS_ACCESS_KEY_ID": "$AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY": "$AWS_SECRET_ACCESS_KEY",
     "AWS_S3_FORCE_PATH_STYLE": $AWS_S3_FORCE_PATH_STYLE,
-    "AWS_ENDPOINT":"$AWS_ENDPOINT"
+    "AWS_ENDPOINT":"$AWS_ENDPOINT",
     "WALG_COMPRESSION_METHOD": "brotli",
     "WALG_DELTA_MAX_STEPS": "$WALG_DELTA_MAX_STEPS",
     "WALG_LIBSODIUM_KEY_TRANSFORM": "$WALG_LIBSODIUM_KEY_TRANSFORM",
@@ -33,5 +38,5 @@ chown postgres: /var/lib/postgresql/.walg.json
 echo "wal_level=replica" >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "archive_mode=on" >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "archive_command='/usr/local/bin/wal-g wal-push \"%p\" >> /var/log/postgresql/archive_command.log 2>&1' " >>/etc/postgresql/$VERSION/main/postgresql.conf
-echo “archive_timeout=60” >>/etc/postgresql/$VERSION/main/postgresql.conf
+echo "archive_timeout=60" >>/etc/postgresql/$VERSION/main/postgresql.conf
 echo "restore_command='/usr/local/bin/wal-g wal-fetch \"%f\" \"%p\" >> /var/log/postgresql/restore_command.log 2>&1' " >>/etc/postgresql/$VERSION/main/postgresql.conf
