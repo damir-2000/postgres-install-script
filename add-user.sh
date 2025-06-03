@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 #
-# Скрипт: create_db_user_su_args_pgbouncer.sh
+# Скрипт: create_db_user_su_args_pgbouncer_restart.sh
 # Описание: создаёт базу данных и пользователя в PostgreSQL через su - postgres -c "psql -c '...'"
 #           с передачей имени БД, имени пользователя и пароля через аргументы.
-#           После создания добавляет запись с именем пользователя и его SCRAM-паролем в /etc/pgbouncer/userlist.txt.
+#           Добавляет запись с именем пользователя и его SCRAM-паролем в /etc/pgbouncer/userlist.txt
+#           и перезапускает службу pgbouncer.
 #
 # Как использовать:
-#   chmod +x create_db_user_su_args_pgbouncer.sh
-#   sudo ./create_db_user_su_args_pgbouncer.sh <имя_бд> <имя_пользователя> <пароль>
+#   chmod +x create_db_user_su_args_pgbouncer_restart.sh
+#   sudo ./create_db_user_su_args_pgbouncer_restart.sh <имя_бд> <имя_пользователя> <пароль>
 #
-# Примечание: скрипт должен быть запущен от root или через sudo, чтобы su - postgres
-#             работал без запроса пароля и чтобы была возможность править /etc/pgbouncer/userlist.txt.
+# Примечание: скрипт должен быть запущен с правами root или через sudo, чтобы su - postgres
+#             работал без запроса пароля, чтобы была возможность править /etc/pgbouncer/userlist.txt
+#             и перезапускать службу pgbouncer.
 
 # Проверяем, что передано ровно 3 аргумента
 if [[ $# -ne 3 ]]; then
@@ -22,6 +24,7 @@ DB_NAME="$1"
 DB_USER="$2"
 DB_PASS="$3"
 PGB_USERLIST="/etc/pgbouncer/userlist.txt"
+PGB_SERVICE="pgbouncer"
 
 # Проверяем, что скрипт запущен от root (или через sudo)
 if [[ $EUID -ne 0 ]]; then
@@ -35,7 +38,7 @@ if ! command -v psql >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Создаём базу \"$DB_NAME\" и пользователя \"$DB_USER\"..."
+echo "=== Создаём базу \"$DB_NAME\" и пользователя \"$DB_USER\" ==="
 
 # 1) Создание базы данных
 su - postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\"" >/dev/null 2>&1
@@ -58,9 +61,9 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-# 4) Получаем SCRAM-пароль (rolpassword) для нового пользователя и добавляем в /etc/pgbouncer/userlist.txt
-#    Формат записи: "username" "SCRAM-SHA-256$..."
-PGB_LINE=""
+echo "=== Получаем SCRAM-хэш пользователя и обновляем /etc/pgbouncer/userlist.txt ==="
+
+# 4) Получаем SCRAM-пароль (rolpassword) для нового пользователя
 ROLPASS_HASH=$(su - postgres -c "psql -At -c \"SELECT rolpassword FROM pg_authid WHERE rolname = '$DB_USER';\"")
 if [[ -z "$ROLPASS_HASH" ]]; then
     echo "Предупреждение: не удалось получить SCRAM-хэш для пользователя \"$DB_USER\". Проверьте, что ролевой пароль действительно задан."
@@ -75,14 +78,28 @@ else
     # Проверим, нет ли уже записи для этого имени пользователя
     if grep -q "^\"$DB_USER\" " "$PGB_USERLIST"; then
         echo "Запись для пользователя \"$DB_USER\" уже есть в $PGB_USERLIST. Заменяем её."
-        # Заменяем существующую строку:
+        # Заменяем существующую строку
         sed -i "s/^\"$DB_USER\" \".*\"$/$PGB_LINE/" "$PGB_USERLIST"
     else
         # Добавляем новую строку
         echo "$PGB_LINE" >>"$PGB_USERLIST"
     fi
-    echo "Пользователь \"$DB_USER\" добавлен в $PGB_USERLIST."
+    echo "Пользователь \"$DB_USER\" добавлен/обновлён в $PGB_USERLIST."
 fi
 
-echo "Готово! Пользователь \"$DB_USER\" успешно создан с паролем \"$DB_PASS\" и добавлен в pgbouncer."
+# 5) Перезапуск службы pgbouncer
+echo "=== Перезапускаем службу $PGB_SERVICE ==="
+if systemctl list-unit-files | grep -q "^${PGB_SERVICE}.service"; then
+    systemctl restart "$PGB_SERVICE"
+    if [[ $? -ne 0 ]]; then
+        echo "Ошибка: не удалось перезапустить службу $PGB_SERVICE. Проверьте её статус и логи."
+        exit 1
+    else
+        echo "Служба $PGB_SERVICE успешно перезапущена."
+    fi
+else
+    echo "Предупреждение: служба $PGB_SERVICE не найдена. Проверьте имя службы и установку pgbouncer."
+fi
+
+echo "=== Готово! Пользователь \"$DB_USER\" создан, добавлен в pgbouncer и служба перезапущена. ==="
 exit 0
