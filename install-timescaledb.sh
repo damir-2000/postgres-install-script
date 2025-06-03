@@ -8,6 +8,7 @@ if [[ -z "$PGV" ]] || [[ $PGV == "(none)" ]]; then
 fi
 
 # Create the repository configuration file:
+apt -y install gpg
 
 sh -c 'echo "deb https://packagecloud.io/timescale/timescaledb/ubuntu/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list'
 
@@ -20,7 +21,7 @@ apt update
 # If you want a specific version, use 'postgresql-16' or similar instead of 'postgresql'
 apt -y install timescaledb-2-postgresql-$VERSION
 
-timescaledb-tune
+timescaledb-tune -y
 
 sudo systemctl restart postgresql
 
